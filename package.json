@@ -1,0 +1,52 @@
+{
+  "name": "@lyeve-labs/client-graphql",
+  "version": "0.1.2",
+  "description": "GraphQL client for LyEve Core - queries, mutations, and subscriptions over WebSocket",
+  "license": "MIT",
+  "author": "LyEve <info@lyeve.com>",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup && publint",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "tsup --watch",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "peerDependencies": {
+    "@lyeve-labs/client": ">=0.2.1"
+  },
+  "devDependencies": {
+    "@lyeve-labs/client": "^0.2.1",
+    "prettier": "^3.9.6",
+    "publint": "^0.3.21",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  }
+}
