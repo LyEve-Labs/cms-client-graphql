@@ -301,7 +301,7 @@ describe('GraphQLClient', () => {
       ws.triggerOpen();
 
       // Should have sent connection_init
-      expect(ws.send).toHaveBeenNthCalledWith(1, JSON.stringify({ type: 'connection_init' }));
+      expect(ws.send).toHaveBeenNthCalledWith(1, JSON.stringify({ type: "connection_init", payload: {} }));
 
       // Simulate server sending connection_ack
       ws.triggerMessage({ type: 'connection_ack' });

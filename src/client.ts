@@ -11,6 +11,8 @@ export interface GraphQLClientConfig {
 	httpClient: HttpClient;
 	/** Base URL for the GraphQL endpoint. Default: '' (relative path /api/v1/graphql). */
 	baseUrl?: string;
+	/** Auth token for WebSocket subscriptions. */
+	token?: string;
 }
 
 export interface SubscriptionHandlers<T = unknown> {
@@ -26,10 +28,12 @@ export interface SubscriptionHandle {
 // Client
 
 export class GraphQLClient {
+	#config: GraphQLClientConfig;
 	#httpClient: HttpClient;
 	#baseUrl: string;
 
 	constructor(config: GraphQLClientConfig) {
+		this.#config = config;
 		this.#httpClient = config.httpClient;
 		this.#baseUrl = config.baseUrl ?? '';
 	}
@@ -76,37 +80,27 @@ export class GraphQLClient {
 		let unsubscribed = false;
 
 		ws.onopen = () => {
-			// Send connection init (graphql-ws protocol)
-			ws.send(JSON.stringify({ type: 'connection_init' }));
-			// After connection_ack, send subscribe
-			const onMessage = (e: MessageEvent) => {
+			const payload = this.#config.token ? { authorization: `Bearer ${this.#config.token}` } : {};
+			ws.send(JSON.stringify({ type: 'connection_init', payload }));
+			let subId: string | null = null;
+
+			ws.onmessage = (e: MessageEvent) => {
 				const msg = JSON.parse(e.data);
 				if (msg.type === 'connection_ack') {
-					const id = (typeof crypto !== 'undefined' && crypto.randomUUID?.())
-					|| `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-					ws.send(JSON.stringify({
-						id,
-						type: 'subscribe',
-						payload: { query: subscription, variables: variables ?? {} },
-					}));
-					// Handle data/complete/error for this subscription
-					const origHandler = ws.onmessage;
-					ws.onmessage = (ev: MessageEvent) => {
-						const m = JSON.parse(ev.data);
-						if (m.id !== id) return;
-						if (m.type === 'next' && !unsubscribed) {
-							handlers.onData(m.payload.data as T);
-						} else if (m.type === 'error' && !unsubscribed) {
-							handlers.onError?.(new Error(JSON.stringify(m.payload)));
-						} else if (m.type === 'complete') {
-							if (!unsubscribed) handlers.onComplete?.();
-							unsubscribed = true;
-							ws.close();
-						}
-					};
+					subId = (typeof crypto !== 'undefined' && crypto.randomUUID?.())
+						|| `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+					ws.send(JSON.stringify({ id: subId, type: 'subscribe', payload: { query: subscription, variables: variables ?? {} } }));
+					return;
+				}
+				if (!subId || msg.id !== subId) return;
+				if (msg.type === 'next' && !unsubscribed) handlers.onData(msg.payload.data as T);
+				else if (msg.type === 'error' && !unsubscribed) handlers.onError?.(new Error(JSON.stringify(msg.payload)));
+				else if (msg.type === 'complete') {
+					if (!unsubscribed) handlers.onComplete?.();
+					unsubscribed = true;
+					ws.close();
 				}
 			};
-			ws.onmessage = onMessage;
 		};
 
 		ws.onerror = (e: Event) => {
