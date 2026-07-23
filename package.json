@@ -1,6 +1,6 @@
 {
   "name": "@lyeve/cms-client-graphql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GraphQL client for LyEve CMS - queries, mutations, and subscriptions over WebSocket",
   "license": "MIT",
   "author": "LyEve Labs <hello@lyeve.com>",
